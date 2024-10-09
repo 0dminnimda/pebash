@@ -242,16 +242,16 @@ class Shell:
             return default
         return sys.argv[index]
 
-    def _execute(self, close_stdin: bool = True) -> Executor:
+    def _execute(self, executor: Executor, close_stdin: bool = True) -> Executor:
         if self._input:
             self._args[0].stdin = Stream.PIPE
-        self._executor.execute(self._args, self._input, close_stdin, encoding="utf-8")
+        executor.execute(self._args, self._input, close_stdin, encoding="utf-8")
         self._input = None
-        return self._executor
+        return executor
 
     def run(self) -> Shell:
         if self._args:
-            with self._execute():
+            with self._execute(self._executor):
                 self._stdout, self._stderr = self._executor.get_output()
             self._return_code = self._executor.return_code
             self._args.clear()
@@ -263,7 +263,7 @@ class Shell:
             raise RuntimeError(
                 "No commands found, pipe some commands and don't use run()"
             )
-        with self._execute(close_stdin):
+        with self._execute(self._executor, close_stdin):
             self._args.clear()
             yield (
                 self._executor.write,
@@ -272,6 +272,12 @@ class Shell:
             )
             self._stdout, self._stderr = self._executor.get_output()
         self._return_code = self._executor.return_code
+
+    # def run_paralel(self) -> Shell:
+    #     new_shell = __class__()
+    #     new_shell.run()
+    #     self._execute(Executor(), close_stdin)
+    #     return self
 
     def __call__(
         self,
